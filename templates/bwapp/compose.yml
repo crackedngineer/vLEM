@@ -1,0 +1,10 @@
+services:
+  application:
+    container_name: pentestlab-bwapp
+    image: raesene/bwapp
+    platform: linux/amd64
+    ports:
+      - 1000:80
+    networks:
+      - pentestlab
+    restart: unless-stopped

@@ -1,0 +1,9 @@
+[
+  {
+    "name": "bwapp",
+    "title": "bWAPP - buggy web application",
+    "description": "Deploy the bwapp container for penetration testing. This setup includes interactive configurations for tailored security testing.",
+    "logo": "",
+    "tags": ["web application", "penetration testing", "security testing"]
+  }
+]
