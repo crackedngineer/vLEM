@@ -1,5 +1,8 @@
 from fastapi import FastAPI
-from api.labs.routes import router as v1_routers
+from fastapi.middleware.cors import CORSMiddleware
+
+from labs.routes import router as v1_routers
+from workers import celery_app
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -7,7 +10,15 @@ app = FastAPI(
     description="Vulnerability Lab Environment Management API",
 )
 
-app.include_router(v1_routers, prefix="/api/v1")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(v1_routers, prefix="/api")
 
 
 @app.get("/", include_in_schema=False)
@@ -31,3 +42,19 @@ async def readz():
     Returns a 200 OK status with a simple message.
     """
     return {"status": "ready"}
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Connect to Redis on application startup (for FastAPI only)."""
+    # Celery workers handle their own Redis connection
+    # This is primarily for the FastAPI app to publish messages
+    print("FastAPI application startup: Initializing Celery connection.")
+    try:
+        # Ping broker to check connection
+        # Note: This ping attempts to connect to *any* worker. If no workers are up, it might fail.
+        # It's a basic check, a more robust system might use Celery's inspect.ping() on known workers.
+        celery_app.control.ping(timeout=1, destination=["celery@%h"])
+        print("Successfully connected to Celery broker (Redis).")
+    except Exception as e:
+        print(f"Failed to connect to Celery broker (Redis) on startup: {e}")

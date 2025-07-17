@@ -9,8 +9,21 @@
       "type": "debugpy",
       "request": "launch",
       "module": "uvicorn",
-      "args": ["api.app:app", "--reload"],
+      "justMyCode": true,
+      "args": ["app:app", "--reload"],
+      "cwd": "${workspaceFolder}/api",
+      "envFile": "${workspaceFolder}/api/.env",
       "jinja": true
+    },
+    {
+      "name": "Python: Celery Worker",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "celery",
+      "console": "integratedTerminal",
+      "args": ["-A", "workers.celery_app", "worker", "-l", "info", "-P", "solo"],
+      "cwd": "${workspaceFolder}/api",
+      "envFile": "${workspaceFolder}/api/.env",
     }
   ]
 }

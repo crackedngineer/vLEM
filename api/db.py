@@ -3,7 +3,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-from api.config import SQLALCHEMY_DATABASE_URL
+from config import SQLALCHEMY_DATABASE_URL
 
 # Create the SQLAlchemy engine
 # connect_args={"check_same_thread": False} is needed for SQLite when using multiple threads,
