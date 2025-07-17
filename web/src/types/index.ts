@@ -19,7 +19,6 @@ export interface DockerContainer {
 }
 
 export interface LabTemplate {
-  id: string;
   name: string;
   description: string;
   category: string;

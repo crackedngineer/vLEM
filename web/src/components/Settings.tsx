@@ -11,10 +11,13 @@ import {
   Monitor,
   Palette
 } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Badge } from './ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { Separator } from '@/components/ui/separator';
 
 const Settings: React.FC = () => {
   const [dockerHost, setDockerHost] = useState('unix:///var/run/docker.sock');
@@ -153,16 +156,20 @@ const Settings: React.FC = () => {
               <label className="block text-sm font-medium text-foreground mb-2">
                 API Version
               </label>
-              <select
+              <Select
                 value={apiVersion}
-                onChange={(e) => setApiVersion(e.target.value)}
-                className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                onValueChange={setApiVersion}
               >
-                <option value="1.43">1.43</option>
-                <option value="1.42">1.42</option>
-                <option value="1.41">1.41</option>
-                <option value="1.40">1.40</option>
-              </select>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1.43">1.43</SelectItem>
+                  <SelectItem value="1.42">1.42</SelectItem>
+                  <SelectItem value="1.41">1.41</SelectItem>
+                  <SelectItem value="1.40">1.40</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </CardContent>
         </Card>
@@ -188,10 +195,7 @@ const Settings: React.FC = () => {
                   Use TLS for Docker daemon communication
                 </p>
               </div>
-              <input
-                type="checkbox"
-                className="w-4 h-4 text-primary rounded focus:ring-primary"
-              />
+              <Switch />
             </div>
             
             <div className="flex items-center justify-between">
@@ -203,10 +207,7 @@ const Settings: React.FC = () => {
                   Verify the Docker daemon certificate
                 </p>
               </div>
-              <input
-                type="checkbox"
-                className="w-4 h-4 text-primary rounded focus:ring-primary"
-              />
+              <Switch />
             </div>
           </CardContent>
         </Card>
@@ -233,11 +234,9 @@ const Settings: React.FC = () => {
                 </p>
               </div>
               <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
+                <Switch
                   checked={autoRefresh}
-                  onChange={(e) => setAutoRefresh(e.target.checked)}
-                  className="w-4 h-4 text-primary rounded focus:ring-primary"
+                  onCheckedChange={setAutoRefresh}
                 />
                 {autoRefresh && <Badge variant="default" className="text-xs">On</Badge>}
               </div>
@@ -266,11 +265,9 @@ const Settings: React.FC = () => {
                 </p>
               </div>
               <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
+                <Switch
                   checked={darkMode}
-                  onChange={(e) => setDarkMode(e.target.checked)}
-                  className="w-4 h-4 text-primary rounded focus:ring-primary"
+                  onCheckedChange={setDarkMode}
                 />
                 <Badge variant={darkMode ? "default" : "outline"} className="text-xs">
                   {darkMode ? "Dark" : "Light"}
@@ -302,11 +299,9 @@ const Settings: React.FC = () => {
                 </p>
               </div>
               <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
+                <Switch
                   checked={notifications}
-                  onChange={(e) => setNotifications(e.target.checked)}
-                  className="w-4 h-4 text-primary rounded focus:ring-primary"
+                  onCheckedChange={setNotifications}
                 />
                 {notifications && <Badge variant="default" className="text-xs">On</Badge>}
               </div>
@@ -321,10 +316,7 @@ const Settings: React.FC = () => {
                   Notify when containers start or stop
                 </p>
               </div>
-              <input
-                type="checkbox"
-                className="w-4 h-4 text-primary rounded focus:ring-primary"
-              />
+              <Switch />
             </div>
             
             <div className="flex items-center justify-between">
@@ -336,10 +328,7 @@ const Settings: React.FC = () => {
                   Notify when errors occur
                 </p>
               </div>
-              <input
-                type="checkbox"
-                className="w-4 h-4 text-primary rounded focus:ring-primary"
-              />
+              <Switch />
             </div>
           </CardContent>
         </Card>

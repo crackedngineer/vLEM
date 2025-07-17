@@ -1,116 +1,95 @@
-import React, { useState } from 'react';
-import Navigation from './components/Navigation';
+import React from 'react';
+import { Routes, Route } from 'react-router-dom';
+import Sidebar from './components/Sidebar';
+import Header from './components/Header';
 import Dashboard from './components/Dashboard';
 import LabTemplates from './components/LabTemplates';
-import CreateLab from './components/CreateLab';
+import LabDetails from './components/LabDetails';
+import BuildLogs from './components/BuildLogs';
+import ContainerExecPage from './components/ContainerExecPage';
+import LogsPage from './components/LogsPage';
 import Settings from './components/Settings';
-import LogViewer from './components/LogViewer';
-import ContainerExec from './components/ContainerExec';
 import { useDockerLabs } from './hooks/useDockerLabs';
 
 function App() {
-  const [activeTab, setActiveTab] = useState('dashboard');
-  const [selectedTemplate, setSelectedTemplate] = useState(null);
-  const [showLogs, setShowLogs] = useState<{ labId: string; labName: string } | null>(null);
-  const [showExec, setShowExec] = useState<{ labId: string; containerId: string; containerName: string } | null>(null);
-  
-  const { labs, loading, createLab, startLab, stopLab, removeLab } = useDockerLabs();
-
-  const handleUseTemplate = (template: any) => {
-    setSelectedTemplate(template);
-    setActiveTab('create');
-  };
-
-  const handleCreateLab = (name: string, description: string, compose: string) => {
-    createLab(name, description, compose);
-    setActiveTab('dashboard');
-    setSelectedTemplate(null);
-  };
-
-  const handleViewLogs = (labId: string) => {
-    const lab = labs.find(l => l.id === labId);
-    if (lab) {
-      setShowLogs({ labId, labName: lab.name });
-    }
-  };
-
-  const handleExecContainer = (labId: string, containerId: string) => {
-    const lab = labs.find(l => l.id === labId);
-    const container = lab?.containers.find(c => c.id === containerId);
-    if (container) {
-      setShowExec({ labId, containerId, containerName: container.name });
-    }
-  };
-
-  const renderActiveTab = () => {
-    switch (activeTab) {
-      case 'dashboard':
-        return (
-          <Dashboard
-            labs={labs}
-            onStartLab={startLab}
-            onStopLab={stopLab}
-            onRemoveLab={removeLab}
-            onViewLogs={handleViewLogs}
-            onExecContainer={handleExecContainer}
-            loading={loading}
-          />
-        );
-      case 'labs':
-        return (
-          <Dashboard
-            labs={labs}
-            onStartLab={startLab}
-            onStopLab={stopLab}
-            onRemoveLab={removeLab}
-            onViewLogs={handleViewLogs}
-            onExecContainer={handleExecContainer}
-            loading={loading}
-          />
-        );
-      case 'templates':
-        return <LabTemplates onUseTemplate={handleUseTemplate} />;
-      case 'create':
-        return (
-          <CreateLab
-            onCreateLab={handleCreateLab}
-            initialTemplate={selectedTemplate}
-            loading={loading}
-          />
-        );
-      case 'settings':
-        return <Settings />;
-      default:
-        return null;
-    }
-  };
+  const { labs, loading, installLab, startLab, stopLab, removeLab } = useDockerLabs();
 
   return (
-    <div className="h-screen bg-background flex flex-col overflow-hidden">
-      <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
+    <div className="h-screen bg-background flex overflow-hidden">
+      <Sidebar />
       
-      <main className="flex-1 overflow-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {renderActiveTab()}
-        </div>
-      </main>
-
-      {showLogs && (
-        <LogViewer
-          labId={showLogs.labId}
-          labName={showLogs.labName}
-          onClose={() => setShowLogs(null)}
-        />
-      )}
-
-      {showExec && (
-        <ContainerExec
-          labId={showExec.labId}
-          containerId={showExec.containerId}
-          containerName={showExec.containerName}
-          onClose={() => setShowExec(null)}
-        />
-      )}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <Header />
+        
+        <main className="flex-1 overflow-auto">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <Routes>
+            <Route 
+              path="/" 
+              element={
+                <Dashboard
+                  labs={labs}
+                  onStartLab={startLab}
+                  onStopLab={stopLab}
+                  onRemoveLab={removeLab}
+                  loading={loading}
+                />
+              } 
+            />
+            <Route 
+              path="/labs" 
+              element={
+                <Dashboard
+                  labs={labs}
+                  onStartLab={startLab}
+                  onStopLab={stopLab}
+                  onRemoveLab={removeLab}
+                  loading={loading}
+                />
+              } 
+            />
+            <Route 
+              path="/templates" 
+              element={
+                <LabTemplates 
+                  onInstallLab={installLab}
+                  loading={loading}
+                />
+              } 
+            />
+            <Route 
+              path="/lab/:labId" 
+              element={
+                <LabDetails
+                  labs={labs}
+                  onStartLab={startLab}
+                  onStopLab={stopLab}
+                  onRemoveLab={removeLab}
+                  loading={loading}
+                />
+              } 
+            />
+            <Route 
+              path="/build/:templateId" 
+              element={
+                <BuildLogs
+                  onInstallComplete={(labId) => window.location.href = `/lab/${labId}`}
+                />
+              } 
+            />
+            <Route 
+              path="/lab/:labId/exec/:containerId" 
+              element={<ContainerExecPage labs={labs} />} 
+            />
+            <Route 
+              path="/lab/:labId/logs" 
+              element={<LogsPage labs={labs} />} 
+            />
+            <Route path="/settings" element={<Settings />} />
+          </Routes>
+          </div>
+        </main>
+      </div>
     </div>
   );
 }
