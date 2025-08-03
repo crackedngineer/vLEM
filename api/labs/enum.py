@@ -8,7 +8,7 @@ class TASK_STATUS(str, Enum):
     CANCELLED = "cancelled"
 
 class LAB_BUILD_STATUS(str, Enum):
-
+    PROCESSING = "processing"
     QUEUED = "queued"
     BUILDING = "building"
     COMPLETED = "completed"

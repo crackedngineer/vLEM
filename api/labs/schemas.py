@@ -5,8 +5,9 @@ from pydantic import BaseModel
 class LabProvisionObject(BaseModel):
     uid: str
     status: Optional[str] = None
-    build_logs: Optional[str] = None
-    run_logs: Optional[str] = None
+
+    class Config:
+        from_attributes = True
 
 
 class LabResponse(BaseModel):

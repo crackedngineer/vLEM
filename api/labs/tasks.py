@@ -1,12 +1,15 @@
+import os
+import yaml
+import asyncio
 from fastapi import HTTPException, status
 from workers import celery_app
 from sqlalchemy.exc import OperationalError
 from db import SessionLocal
-from helpers import decode_base64
 from labs.models import Lab
-from labs.utils import run_docker_compose_command
+from labs.utils import run_docker_compose_command, download_github_template_files
 from labs.enum import LAB_TASK_TYPE, LAB_BUILD_STATUS
 from labs.schemas import LabProvisionObject
+from config import LABS_DATA_DIR
 
 
 @celery_app.task(bind=True, name="task_manager", queue="controller_queue")
@@ -29,40 +32,77 @@ def lab_task_manager(self, uid: str, type: str = LAB_TASK_TYPE.PROVISION):
 
 
 def provision_lab_task(uid: str):
-    """Celery task for lab creation, building, and initial starting."""
+    """
+    Celery task for the full lab provisioning process from a GitHub template.
+    Steps:
+    1. Create local lab directory.
+    2. Download template files from GitHub.
+    3. Load and validate docker-compose.yml.
+    4. Build Docker Compose services.
+    5. Perform port checks.
+    6. Start Docker Compose services.
+    """
     db = SessionLocal()
     lab = None
+    lab_dir = os.path.join(LABS_DATA_DIR, uid)
     try:
         lab = db.query(Lab).filter(Lab.uid == uid).first()
         if not lab:
             print(f"Provisioning task: Lab {uid} not found in DB. Cannot provision.")
             return
 
-        lab_building_status = LabProvisionObject(
-            uid=str(lab.uid),
-            status=LAB_BUILD_STATUS.BUILDING.value,
-        )
-        db.add(lab_building_status)
+        setattr(lab, "status", LAB_BUILD_STATUS.PROCESSING.value)
         db.commit()
         print(f"Lab {uid} status updated to 'building'.")
 
-        # Step 1: Build Docker Compose services
-        print(f"Provisioning task: Building services for lab {uid}...")
-        build_result = run_docker_compose_command(
-            str(docker_compose_content), ["build"], capture_output=True
-        )
-        lab_build_logs = LabProvisionObject(
-            uid=str(lab.uid),
-            status=LAB_BUILD_STATUS.COMPLETED.value,
-            build_logs=(
-                getattr(build_result, "stdout", "") if build_result is not None else ""
-            ),
-        )
-        db.add(lab_build_logs)
-        db.commit()
+        # Step 1: Create a unique local directory for the lab's files
+        os.makedirs(lab_dir, exist_ok=True)
+        print(f"Task: Created local lab directory: {lab_dir}")
+
+        # Step 2: Download all files for the specified template from GitHub
+        template_name = lab.uid.split("-")[0]
         print(
-            f"Build for lab {uid} completed. Output:\n{getattr(build_result, 'stdout', '') if build_result is not None else ''}"
+            f"Task: Downloading template '{template_name}' files from GitHub to {lab_dir}..."
         )
+        asyncio.run(download_github_template_files(template_name, lab_dir))
+        print(f"Task: Finished downloading template '{template_name}' files.")
+
+        # Step 3: Load and validate the downloaded 'docker-compose.yml' file
+        compose_file_path = os.path.join(lab_dir, "compose.yml")
+        if not os.path.exists(compose_file_path):
+            raise Exception(
+                f"Downloaded template '{template_name}' does not contain a compose.yml file."
+            )
+
+        with open(compose_file_path, "r", encoding="utf-8") as f:
+            docker_compose_content = f.read()
+
+        # Validate compose content by attempting to load it
+        yaml.safe_load(docker_compose_content)
+        print(f"Task: Validated compose.yml for lab {uid}.")
+
+        # Update status to building as we proceed
+        setattr(lab, "status", LAB_BUILD_STATUS.BUILDING.value)
+        db.commit()
+        print(f"Task: Lab {uid} status updated to 'building'.")
+
+        # # Step 1: Build Docker Compose services
+        # print(f"Provisioning task: Building services for lab {uid}...")
+        # build_result = run_docker_compose_command(
+        #     str(docker_compose_content), ["build"], capture_output=True
+        # )
+        # lab_build_logs = LabProvisionObject(
+        #     uid=str(lab.uid),
+        #     status=LAB_BUILD_STATUS.COMPLETED.value,
+        #     build_logs=(
+        #         getattr(build_result, "stdout", "") if build_result is not None else ""
+        #     ),
+        # )
+        # db.add(lab_build_logs)
+        # db.commit()
+        # print(
+        #     f"Build for lab {uid} completed. Output:\n{getattr(build_result, 'stdout', '') if build_result is not None else ''}"
+        # )
 
         # lab_starting_status = LabProvisionObject(
         #     uid=str(lab.uid),
@@ -118,22 +158,12 @@ def provision_lab_task(uid: str):
         db.rollback()
         print(f"Provisioning task: Database error for {uid}: {e}")
         if lab:
-            lab_failed_status = LabProvisionObject(
-                uid=str(lab.uid),
-                status=LAB_BUILD_STATUS.FAILED.value,
-                run_logs=f"Database error: {e}",
-            )
-            db.add(lab_failed_status)
+            setattr(lab, "status", LAB_BUILD_STATUS.FAILED.value)
             db.commit()
     except HTTPException as e:
         print(f"Provisioning task: Docker command failed for {uid}: {e.detail}")
         if lab:
-            lab_failed_status = LabProvisionObject(
-                uid=str(lab.uid),
-                status=LAB_BUILD_STATUS.FAILED.value,
-                run_logs=e.detail,
-            )
-            db.add(lab_failed_status)
+            setattr(lab, "status", LAB_BUILD_STATUS.FAILED.value)
             db.commit()
     except Exception as e:
         db.rollback()
@@ -141,12 +171,8 @@ def provision_lab_task(uid: str):
             f"Provisioning task: An unexpected error occurred during provisioning for {uid}: {e}"
         )
         if lab:
-            lab_failed_status = LabProvisionObject(
-                uid=str(lab.uid),
-                status=LAB_BUILD_STATUS.FAILED.value,
-                run_logs=str(e),
-            )
-            db.add(lab_failed_status)
+
+            setattr(lab, "status", LAB_BUILD_STATUS.FAILED.value)
             db.commit()
     finally:
         db.close()

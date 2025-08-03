@@ -12,7 +12,7 @@ class Lab(TimestampMixin, Base):
 
     __tablename__ = "labs"
 
-    uid = Column(
+    id = Column(
         String, primary_key=True, index=True, doc="Unique identifier for the lab"
     )
     name = Column(String, nullable=False, doc="Name of the lab")
@@ -33,26 +33,41 @@ class Lab(TimestampMixin, Base):
             "name": self.name,
             "description": self.description,
             "status": self.status,
-            "docker_compose_content": self.docker_compose_content,
         }
 
 
-class BuildLog(TimestampMixin, Base):
+class Build(TimestampMixin, Base):
     """
     SQLAlchemy ORM model for storing build logs associated with a lab.
     Maps to the 'build_logs' table in the database.
     """
 
-    __tablename__ = "build_logs"
+    __tablename__ = "builds"
 
     id = Column(
         String, primary_key=True, index=True, doc="Unique identifier for the log"
     )
     lab_uid = Column(String, ForeignKey("labs.uid"), doc="UID of the associated lab")
-    log_content = Column(Text, nullable=False, doc="Content of the build log")
-    is_error = Column(
-        Boolean, default=False, doc="Indicates if this log entry is an error"
+    status = Column(
+        String,
+        nullable=False,
+        doc="Current status of the build",
     )
 
     def __repr__(self):
         return f"<BuildLogs(id='{self.id}', lab_uid='{self.lab_uid}')>"
+    
+class BuildStage(TimestampMixin, Base):
+    __tablename__ = "build_stages"
+    name = Column(String, nullable=False, doc="Name of the Build Stage")
+    build_id = Column(String, ForeignKey("build_stages.uid"), doc="UID of the associated lab")
+    status = Column(
+        String,
+        nullable=False,
+        doc="Current status of the build stage",
+    )
+
+class Log(TimestampMixin, Base):
+    __tablename__ = "logs"
+    build_stage_id = Column(String, ForeignKey("build_stages.uid"), doc="UID of the associated lab")
+    content =  Column(Text, nullable=False, doc="Content of the build log")

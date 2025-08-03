@@ -314,11 +314,6 @@ async def download_github_template_files(template_name: str, local_target_dir: s
     Downloads all files from a specific template directory in the GitHub repository
     to a local target directory.
     """
-    if not GITHUB_REPO_OWNER or not GITHUB_REPO_NAME or not GITHUB_TEMPLATES_BASE_PATH:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="GitHub repository owner, name, or base templates path not configured.",
-        )
 
     # GitHub API endpoint to list contents of a specific template directory
     contents_api_url = (
@@ -326,12 +321,8 @@ async def download_github_template_files(template_name: str, local_target_dir: s
         f"{GITHUB_TEMPLATES_BASE_PATH}/{template_name}"
     )
 
-    headers = {}
-    # if GITHUB_TOKEN:
-    #     headers["Authorization"] = f"token {GITHUB_TOKEN}"
-
     try:
-        response = await github_client.get(contents_api_url, headers=headers)
+        response = await github_client.get(contents_api_url)
         response.raise_for_status()
         contents = response.json()
 
@@ -356,9 +347,6 @@ async def download_github_template_files(template_name: str, local_target_dir: s
                 with open(local_file_path, "w", encoding="utf-8") as f:
                     f.write(file_content)
             elif item["type"] == "dir":
-                # Recursively download subdirectories if needed.
-                # For simplicity, this current implementation assumes flat template directories.
-                # If your templates have nested folders, you'd need to extend this.
                 print(
                     f"Skipping subdirectory: {item['path']} within template {template_name}"
                 )

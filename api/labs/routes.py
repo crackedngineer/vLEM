@@ -19,7 +19,7 @@ from labs.constants import (
     GITHUB_REPO_NAME,
     GITHUB_TEMPLATES_INDEX_FILE,
 )
-from labs.enum import LAB_BUILD_STATUS
+from labs.enum import LAB_BUILD_STATUS, LAB_TASK_TYPE
 from labs.utils import (
     fetch_template_metadata_list,
     fetch_template_details,
@@ -115,7 +115,7 @@ async def create_lab_from_template(template_name: str, db: Session = Depends(get
         db.commit()
         db.refresh(new_lab)
 
-        # lab_task_manager.delay(uid, type=LAB_TASK_TYPE.PROVISION)
+        lab_task_manager.delay(uid, type=LAB_TASK_TYPE.PROVISION)
 
         return CreateLabResponse(
             message=f"Lab creation from template '{template_name}' accepted. Building and starting in background.",
